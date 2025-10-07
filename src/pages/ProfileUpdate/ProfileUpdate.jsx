@@ -106,7 +106,6 @@ const ProfileUpdate = () => {
       toast.error(error.message);
     }
   };
-
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -117,12 +116,13 @@ const ProfileUpdate = () => {
 
           if (docSnap.exists()) {
             const data = docSnap.data();
+            setName(data.name || "");
+            setBio(data.bio || "");
+            setPrevImage(data.avatar || "");
 
-            if (data.name && data.bio) {
-              setName(data.name);
-              setBio(data.bio);
-              setPrevImage(data.avatar || ""); // ✅ Firestore se avatar lo
-              navigate("/chat");
+            // ✅ Ab redirect sirf tab hoga jab name/bio na ho (yaani new user ho)
+            if (!data.name || !data.bio) {
+              console.log("Profile incomplete — stay on profile page");
             }
           }
         } catch (err) {
@@ -200,9 +200,7 @@ const ProfileUpdate = () => {
 
           <img
             src={
-              image
-                ? URL.createObjectURL(image)
-                : prevImage || assets.logo_icon
+              image ? URL.createObjectURL(image) : prevImage || assets.logo_icon
             }
             alt="preview-logo"
             className="w-36 h-36 rounded-full object-cover"

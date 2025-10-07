@@ -7,7 +7,7 @@
             "GET",
             "POST",
             "PUT",
-            "HEAD"
+            "DELETE"
         ],
         "maxAgeSeconds": 3600,
         "responseHeader": [
