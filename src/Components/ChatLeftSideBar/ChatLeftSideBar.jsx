@@ -55,36 +55,42 @@ const ChatLeftSideBar = ({ isOpen, onClose }) => {
         setShowSearch(true);
 
         const userRef = collection(db, "users");
-        const q = query(userRef, where("username", "==", input));
-        const querySnap = await getDocs(q);
 
-        if (querySnap.empty) {
+        // ✅ Do separate queries
+        const q1 = query(userRef, where("username", "==", input));
+        const q2 = query(userRef, where("name", "==", input));
+
+        const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+
+        // Merge results and remove duplicates
+        const allUsersMap = new Map();
+
+        snap1.docs.forEach((doc) => allUsersMap.set(doc.id, doc.data()));
+        snap2.docs.forEach((doc) => allUsersMap.set(doc.id, doc.data()));
+
+        const allUsers = Array.from(allUsersMap.values());
+
+        if (allUsers.length === 0) {
           setUsers([]);
-          toast.info("No user found with this username");
+          toast.info("No user found with this username or name");
           return;
         }
 
-        const userDoc = querySnap.docs[0].data();
-
-        // Self check
-        if (userDoc.id === userData.id) {
-          setUsers([]);
-          toast.info("You can't chat with yourself");
-          return;
-        }
+        // Remove self
+        const filteredUsers = allUsers.filter((u) => u.id !== userData.id);
 
         // Check if already in chat
-        const alreadyInChat = chatData.some(
-          (chat) => chat.userData?.id === userDoc.id
+        const finalUsers = filteredUsers.filter(
+          (u) => !chatData.some((chat) => chat.userData?.id === u.id)
         );
 
-        if (alreadyInChat) {
+        if (finalUsers.length === 0) {
           setUsers([]);
-          toast.info("This user is already in your chat list");
+          toast.info("No new users found to chat");
           return;
         }
 
-        setUsers([userDoc]);
+        setUsers(finalUsers);
       } catch (error) {
         console.error("Error in search:", error);
         toast.error("Search failed, please try again");
